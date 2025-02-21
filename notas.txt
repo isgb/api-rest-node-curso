@@ -1,0 +1,32 @@
+// Crear base de datos en mongo db
+use videojuegos
+db.ps4.save({titulo: "The last of us", genero:"Aventura", anio:2020})
+
+use.videojuegos
+show collections
+db.ps4.find()
+
+db.ps4.save({titulo: "Mortal Komb XL", genero:"Luchas", anio:2015})
+db.ps4.find()
+
+db.nintendo.save({titulo: "Mario Galaxy", genero:"Aventura", anio:2020})
+show collections
+db.nintendo.find()
+
+db.ps4.find({anio: 2015})
+db.ps4.delete({anio: 2015})
+
+-------------------------
+Nodejs
+npm init
+
+// --save idnica que soo guardaremos en nuestro proyecto
+npm i express --save
+npm i mongoose --save
+npm i multer --save
+npm i validator --save
+npm i cors --save
+// -dev solo va esta ren desarrollo
+npm i nodemon --save-dev
+
+// Crear primero basedatos - conexion.js
