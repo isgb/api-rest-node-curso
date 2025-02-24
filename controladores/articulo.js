@@ -65,20 +65,101 @@ const crear = async (req, res) => {
 
 const listar = async (req, res) => {
     try {
-        const articulos = await Articulo.find().exec();
-        res.status(200).json({
-            status: 'success',
-            articulos: articulos
+        let consulta = await Articulo.find({});
+        let consultaLimit = await Articulo.find({}).limit(req.params.ultimos);
+
+        if (!consulta || consulta.length === 0) {
+            return res.status(404).json({
+                status: "Error",
+                message: "No se han encontrado articulos",
+            });
+        }
+
+        if (req.params.ultimos && !isNaN(req.params.ultimos)) {
+            return res.status(200).json({
+                status: "Success",
+                total: consultaLimit.length,
+                articulo: consultaLimit,
+            });
+        }
+
+        return res.status(200).json({
+            status: "Success",
+            total: consulta.length,
+            articulo: consulta,
         });
-    } catch (err) {
-        console.log('err' + err);
-        res.status(500).send(err);
+
+    } catch (error) {
+        return res.status(404).json({
+            status: "Error",
+            message: "No se han encontrado articulos",
+        });
     }
+};
+
+const uno = async (req, res) => {
+    try {
+        // Recoger id por la url
+        let id = req.params.id;
+        // Buscar articulo
+        let articulo = await Articulo.findById(id)
+
+        if (!articulo) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se ha encontrado el articulo",
+            });
+        }
+
+        // Devolver resultado
+        return res.status(200).json({
+            status: "success",
+            articulo
+        })
+
+    } catch (error) {
+        // Si no existe articulo devuelve esto 
+        return res.status(400).json({
+            status: "error",
+            message: "Un error ha ocurrido mientras se obtenia el articulo",
+        });
+    }
+
+}
+
+const borrar = (req, res) => {
+    
+    // Recoger el id de la url
+    let id = req.params.id;
+
+    // Find and delete
+    Articulo.findByIdAndDelete(id)
+        .then(articuloBorrado => {
+            if (!articuloBorrado) {
+                return res.status(404).send({
+                    status: 'error',
+                    message: 'No se ha borrado el articulo, posiblemente no exista'
+                });
+            }
+
+            return res.status(200).send({
+                status: 'success',
+                articulo: articuloBorrado
+            });
+        })
+        .catch(err => {
+            return res.status(500).send({
+                status: 'error',
+                message: 'Error al borrar el articulo'
+            });
+        });
 }
 
 module.exports = {
     prueba,
     curso,
     crear,
-    listar
+    listar,
+    uno,
+    borrar
 };
