@@ -1,5 +1,6 @@
 const validator = require('validator');
 const Articulo = require('../modelos/Articulo');
+const { validarArticulo } = require('../helper/validar');
 
 const prueba = (req, res) => {
     return res.status(200).send({
@@ -22,25 +23,15 @@ const crear = async (req, res) => {
     let parametros = req.body;
 
     // Validar datos
-    try {
-
-        let validate_titulo = !validator.isEmpty(parametros.titulo) &&
-            validator.isLength(parametros.titulo, { min: 5, max: 50 });
-        let validate_contenido = !validator.isEmpty(parametros.contenido);
-
-        if (!validate_titulo || !validate_contenido) {
-            return res.status(400).send({
-                status: 'error',
-                message: 'Los datos no son válidos'
+        // Validar datos
+        try {
+            validarArticulo(parametros);
+        } catch (error) {
+            return res.status(400).json({
+                status: "error",
+                message: "Faltan datos por enviar",
             });
         }
-
-    } catch (error) {
-        return res.status(400).send({
-            status: 'error',
-            message: 'Faltan datos por enviar'
-        });
-    }
 
     // Crear el objeto a guardar
     const articulo = new Articulo(parametros);
@@ -128,7 +119,7 @@ const uno = async (req, res) => {
 }
 
 const borrar = (req, res) => {
-    
+
     // Recoger el id de la url
     let id = req.params.id;
 
@@ -155,11 +146,53 @@ const borrar = (req, res) => {
         });
 }
 
+const editar = async (req, res) => {
+    try {
+        //  Recoger id articulo a editar
+        let articuloId = req.params.id;
+        // Recoger datos del body
+        let parametros = req.body;
+
+        // Validar datos
+        try {
+            validarArticulo(parametros);
+        } catch (error) {
+            return res.status(400).json({
+                status: "error",
+                message: "Faltan datos por enviar",
+            });
+        }
+
+        // Buscar y actualizar articulo
+        let articuloActualizado = await Articulo.findOneAndUpdate({ _id: articuloId }, parametros, { new: true })
+        if (!articuloActualizado) {
+            return res.status(500).json({
+                status: "error",
+                mensaje: "Error al actualizar",
+            })
+        }
+        // Devolver respuesta
+        return res.status(200).json({
+            status: "success updated",
+            mensaje: "Se ha actualizado correctamente",
+            articulo: articuloActualizado
+        })
+        // Devolver respuesta
+    } catch (error) {
+        return res.status(400).json({
+            status: "error",
+            error,
+            message: "Un error ha ocurrido mientras se editaba el articulo",
+        });
+    }
+}
+
 module.exports = {
     prueba,
     curso,
     crear,
     listar,
     uno,
-    borrar
+    borrar,
+    editar
 };
