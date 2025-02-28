@@ -1,6 +1,8 @@
 const validator = require('validator');
+const path = require('path');
 const Articulo = require('../modelos/Articulo');
 const { validarArticulo } = require('../helper/validar');
+const fs = require('fs');
 
 const prueba = (req, res) => {
     return res.status(200).send({
@@ -23,15 +25,15 @@ const crear = async (req, res) => {
     let parametros = req.body;
 
     // Validar datos
-        // Validar datos
-        try {
-            validarArticulo(parametros);
-        } catch (error) {
-            return res.status(400).json({
-                status: "error",
-                message: "Faltan datos por enviar",
-            });
-        }
+    // Validar datos
+    try {
+        validarArticulo(parametros);
+    } catch (error) {
+        return res.status(400).json({
+            status: "error",
+            message: "Faltan datos por enviar",
+        });
+    }
 
     // Crear el objeto a guardar
     const articulo = new Articulo(parametros);
@@ -187,6 +189,107 @@ const editar = async (req, res) => {
     }
 }
 
+const subir = async (req, res) => {
+
+    //( Recoger el fichero de la imagen
+    if (!req.file && !req.files) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha subido ninguna imagen",
+        });
+    }
+
+    // Nombre del archivo
+    let archivo = req.file.originalname;
+
+    // Extension del archivo
+    let archivo_split = archivo.split("\.");
+    let extension = archivo_split[1];
+
+    if (extension != 'png' && extension != 'jpg' && extension != 'jpeg' && extension != 'gif') {
+
+        fs.unlink(req.file.path, (err) => {
+            return res.status(400).json({
+                status: "error",
+                message: "La extension del archivo no es valida"
+            });
+        });
+
+    } else {
+
+        let articuloId = req.params.id;
+
+        // Buscar y actualizar articulo
+        let articuloActualizado = await Articulo.findOneAndUpdate({ _id: articuloId }, {imagen: req.file.filename}, { new: true })
+        if (!articuloActualizado) {
+            return res.status(500).json({
+                status: "error",
+                mensaje: "Error al actualizar",
+            })
+        }
+        // Devolver respuesta
+        return res.status(200).json({
+            status: "success updated",
+            mensaje: "Se ha actualizado correctamente",
+            articulo: articuloActualizado,
+            fichero: req.file
+        })
+
+    }
+}
+
+const imagen = (req, res) => {
+    let archivo = req.params.imagen;
+    let ruta_archivo = './imagenes/articulos/'+archivo;
+
+    // access
+    fs.stat(ruta_archivo, (error, existe) => {
+        if (existe) {
+            return res.sendFile(path.resolve(ruta_archivo));
+        } else {
+            return res.status(404).json({
+                status: "error",
+                message: "La imagen no existe",
+                existe,
+                fichero,
+                ruta_archivo
+            });
+        }
+    });
+}
+
+const buscador = async (req, res) => {
+    // Sacar string a buscar
+    let buscar = req.params.buscar;
+
+    // Find or
+    try {
+        let articulos = await Articulo.find({
+            "$or": [
+                { "titulo": { "$regex": buscar, "$options": "i" } },
+                { "contenido": { "$regex": buscar, "$options": "i" } }
+            ]
+        }).sort([['fecha', 'descending']]);
+
+        if (!articulos || articulos.length <= 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No se han encontrado articulos",
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            articulos
+        });
+    } catch (err) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error en la peticion",
+        });
+    }
+}
+
 module.exports = {
     prueba,
     curso,
@@ -194,5 +297,8 @@ module.exports = {
     listar,
     uno,
     borrar,
-    editar
+    editar,
+    subir,
+    imagen,
+    buscador
 };
